@@ -1,0 +1,22 @@
+def is_admin():
+    def predicate(ctx):
+        return ctx.author.id in [670663150365835285]
+
+    return commands.check(predicate)
+
+
+
+def sr(serverid:str):
+    if not os.path.isfile("Server"):
+        try:
+            os.mkdir("Server")
+        except:
+            pass
+    if os.path.isfile("Server/{}.json".format(serverid)):
+        pass
+    else:
+        roles = {}
+        roles['saved'] = []
+        roles['settings'] = []
+        with open("Server/{}.json".format(serverid), 'w+') as f:
+            json.dump(roles, f, indent=4)

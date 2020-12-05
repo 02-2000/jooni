@@ -6,6 +6,17 @@ def is_admin():
 
 
 
+def delete(serverid:str):
+    if not os.path.isfile("Server"):
+        try:
+            os.mkdir("Server")
+        except:
+            pass
+    if os.path.isfile("Server/{}.json".format(serverid)):
+        os.remove("Server/{}.json".format(serverid))
+    else:
+        pass
+        
 def sr(serverid:str):
     if not os.path.isfile("Server"):
         try:
@@ -20,3 +31,4 @@ def sr(serverid:str):
         roles['settings'] = []
         with open("Server/{}.json".format(serverid), 'w+') as f:
             json.dump(roles, f, indent=4)
+            

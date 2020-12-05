@@ -1,1 +1,127 @@
-print("TESt")
+import asyncio
+import sys
+import discord
+from discord.ext import commands
+import os
+import json
+from discord import Message
+
+if os.path.isfile('react.json'):
+    with open("react.json", "r") as file:
+        autoreact_channels = json.load(file)
+        print(autoreact_channels)
+else:
+    autoreact_channels = {}
+    with open('react.json', 'w') as f:
+        json.dump(autoreact_channels, f, indent=4)
+
+bot = commands.Bot(command_prefix="J!")
+
+bot.remove_command('help')
+
+class ar(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.group(name='ar')
+    @commands.has_permissions(administrator=True)
+    async def autoreact(self, ctx: commands.Context):
+        if ctx.subcommand_passed is None:
+            embed = discord.Embed(description='ar add/remove <channel> <emoji>\n ar info')
+            await ctx.send(embed=embed)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        global autoreact_channels
+
+        with open("react.json", "r") as file:
+            autoreact_channels = json.load(file)
+
+        if str(message.channel.id) not in autoreact_channels: return
+
+        for emoji in autoreact_channels[str(message.channel.id)]:
+            await message.add_reaction(emoji)
+
+    @autoreact.command()
+    @commands.has_permissions(administrator=True)
+    async def add(self, ctx: commands.Context, channel: discord.TextChannel=None, *, emojies: str = None):
+        if emojies is None:
+            embed = discord.Embed(description="Du musst min. einen emoji angeben",
+                                  color=0xb70000)
+            await ctx.send(embed=embed, delete_after=5)
+            return
+        if not channel:
+            await ctx.send('Gebe einen Channel an!')
+            return
+        with open("react.json", "r") as file:
+            autoreact_channels = json.load(file)
+            print(autoreact_channels)
+
+        emojies = emojies.split(" ")
+        if str(channel.id) in autoreact_channels:
+            del autoreact_channels[str(channel.id)]
+
+        autoreact_channels[str(channel.id)] = []
+
+        for emoji in emojies:
+            autoreact_channels[str(channel.id)].append(emoji)
+
+        with open("react.json", "w") as file:
+            json.dump(autoreact_channels, file)
+        embed = discord.Embed(
+            description='Done.', color=0x01c3dd)
+        embed.add_field(name='Channel:', value='<#{}>'.format(channel.id))
+        embed.add_field(name='Emoji:', value='{}'.format(emojies))
+        await ctx.send(embed=embed)
+
+    @autoreact.command()
+    @commands.has_permissions(administrator=True)
+    async def remove(self, ctx: commands.Context, channel : discord.TextChannel):
+        global autoreact_channels
+
+        with open("react.json", "r") as file:
+            autoreact_channels = json.load(file)
+            print(autoreact_channels)
+        if str(channel.id) not in autoreact_channels:
+            await ctx.send(f'{channel.mention} ist kein ar channel.')
+            return
+        if str(channel.id) in autoreact_channels:
+            del autoreact_channels[str(channel.id)]
+
+        with open("react.json", "w") as file:
+            json.dump(autoreact_channels, file)
+        embed = discord.Embed(
+            description='Done',
+            color=0x01c3dd)
+
+        await ctx.send(embed=embed)
+
+    @autoreact.command()
+    async def info(self, ctx):
+        global autoreact_channels
+        with open("react.json", "r") as file:
+            autoreact_channels = json.load(file)
+            print(autoreact_channels)
+
+        desc = ""
+        for channelid in autoreact_channels:
+            print(channelid)
+            channel = ctx.guild.get_channel(int(channelid))
+            print(channel)
+            if channel is not None:
+                emojidesc = ""
+                for emoji in autoreact_channels[channelid]:
+                    emojidesc += emoji
+                desc += f"{channel.mention} {emojidesc}\n"
+
+        if desc == "": desc = "Du hast noch keine festgelegt du Vogel! :P"
+
+        embed = discord.Embed(title="Liste aller autoreact Kanäle:", description=desc, color=discord.Color.green())
+        
+        await ctx.send(embed=embed)
+def setup(bot):
+    print('AutoReact loaded')
+    bot.add_cog(ar(bot))
+
+
+

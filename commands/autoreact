@@ -6,15 +6,6 @@ import os
 import json
 from discord import Message
 
-if os.path.isfile('react.json'):
-    with open("react.json", "r") as file:
-        autoreact_channels = json.load(file)
-        print(autoreact_channels)
-else:
-    autoreact_channels = {}
-    with open('react.json', 'w') as f:
-        json.dump(autoreact_channels, f, indent=4)
-
 bot = commands.Bot(command_prefix="J!")
 
 bot.remove_command('help')

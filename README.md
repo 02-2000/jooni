@@ -16,3 +16,6 @@ Run the bot for yourself!
 # Copyright notice:
 
 The original content "commands.tempchannel" file was created by [Melion.net](https://git.melion.net/explore/projects)
+Why are you using their one?
+
+I am just too lazy to search and upload my own file :P. My code will maybe be uploaded in future.

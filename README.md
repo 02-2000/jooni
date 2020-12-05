@@ -2,4 +2,4 @@
 
 Copyright notice:
 
-The original content "commands.tempchannel" file was created by [https://git.melion.net/explore/projects]
+The original content "commands.tempchannel" file was created by [Melion.net](https://git.melion.net/explore/projects)

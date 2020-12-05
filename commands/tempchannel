@@ -1,1 +1,149 @@
+import asyncio
+import sys
+import discord
+from discord.ext import commands
+import os
+import json
 
+if os.path.isfile("channels.json"):
+    with open('channels.json', encoding='utf-8') as f:
+        channels = json.load(f)
+else:
+    channels = {}
+    with open('channels.json', 'w') as f:
+        json.dump(channels, f, indent=4)
+
+
+async def getChannel(guild, name):
+    for channel in guild.voice_channels:
+        if name in channel.name:
+            return channel
+    return None
+
+
+def isJoinHub(channel):
+    if channels[str(channel.guild.id)]:
+        if channel.id in channels[str(channel.guild.id)]:
+            return True
+    return False
+
+
+def isTempChannel(channel):
+    if channel.id in tempchannels:
+        return True
+    else:
+        return False
+bot = commands.Bot(command_prefix="d!")
+botcolor = 0xffffff
+
+bot.remove_command("help")
+
+# ---------------------------------------------------------------------
+
+
+tempchannels = []
+admins = []
+
+
+# ---------------------------------------------------------------------
+class temp(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.group(name='channel')
+    async def temp(self, ctx):
+        print('no')
+        if ctx.subcommand_passed is None:
+            embed = discord.Embed(title='Wrong Command Usage!',
+                                  description='> Use `channel [add / remove]` to add/remove a tempchannel.\n'
+                                              '> For more info & help use `help channel`')
+            embed.set_footer(text='Requestet by: {}'.format(ctx.author), icon_url=ctx.author.avatar_url)
+            await ctx.send(embed=embed)
+
+    @temp.command(pass_context=True)
+    async def add(self, ctx):
+        def check(m):
+            return m.author.id == ctx.author.id
+        if ctx.author.bot:
+            return
+        if ctx.author.guild_permissions.administrator:
+            await ctx.send('Enter the channel id')
+            channelid = await self.bot.wait_for('message', check=check, timeout=60.0)
+            try:
+                if channelid:
+                    for vc in ctx.guild.voice_channels:
+                        if vc.id == str(channelid):
+                            if str(ctx.channel.guild.id) not in channels:
+                                channels[str(ctx.channel.guild.id)] = []
+                            channels[str(ctx.channel.guild.id)].append(str(channelid))
+                            with open('channels.json', 'w') as f:
+                                json.dump(channels, f, indent=4)
+                            embed = discord.Embed(description="{} was added".format(vc.name), color=discord.Color.green())
+                            await ctx.send(embed=embed)
+                            return
+                    await ctx.send("{} is no voicechannel".format(channelid))
+            except asyncio.TimeoutError:
+                await ctx.channel.send('Took too long to answer!')
+
+        else:
+            await ctx.send("You need administrator permissions to use this command.")
+
+
+    @temp.command(pass_context=True)
+    async def remove(self, ctx, channelid):
+        if ctx.author.bot:
+            return
+        if ctx.author.guild_permissions.administrator:
+            if channelid:
+                guildS = str(ctx.channel.guild.id)
+                channelidI = int(channelid)
+                for vc in ctx.guild.voice_channels:
+                    if vc.id == int(channelid):
+                        if channels[guildS]:
+                            if channelidI in channels[guildS]:
+                                channels[guildS].remove(channelidI)
+                                with open('channels.json', 'w') as f:
+                                    json.dump(channels, f, indent=4)
+                                    embed = discord.Embed(description="{} was removed.".format(vc.name),
+                                                          color=discord.Color.green())
+                                    await ctx.send(embed=embed)
+                                    return
+                            else:
+                                await ctx.send("This channel does not exist here.")
+                                return
+                await ctx.send('There are no tempchannels on this server')
+            else:
+                await ctx.send("Please enter a channel Id")
+        else:
+            await ctx.send("You need administrator permissions to use this command.")
+
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        if before.channel:
+            if isTempChannel(before.channel):
+                print('befor')
+                bchan = before.channel
+                if len(bchan.members) == 0:
+
+                    await bchan.delete(reason="No member in tempchannel")
+        if after.channel:
+            if isJoinHub(after.channel):
+                print()
+                overwrite = discord.PermissionOverwrite()
+                overwrite.manage_channels = True
+                overwrite.move_members = True
+                name = "│⏳ {}".format(member.name)
+                output = await after.channel.clone(name=name, reason="Joined voice")
+                if output:
+                    tempchannels.append(output.id)
+                    await output.set_permissions(member, overwrite=overwrite)
+                    await member.move_to(output, reason="Created tempvoice")
+
+
+# ---------------------------------------------------------------------
+
+
+def setup(bot):
+    print('Tempchannel on')
+    bot.add_cog(temp(bot))

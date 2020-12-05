@@ -8,20 +8,6 @@ from check import is_admin
 from check import sr
 
 
-
-
-if os.path.isfile("knast.json"):
-    with open('knast.json', encoding='utf-8') as f:
-        knast = json.load(f)
-else:
-    knast = {}
-    knast['user'] = []
-    knast['role'] = []
-    with open('knast.json', 'w') as f:
-        json.dump(knast, f, indent=4)
-
-id_list = [] #Rollen nach removeknast
-
 bot = commands.Bot(command_prefix='ts!')
 
 botcolor = 0x00ff06

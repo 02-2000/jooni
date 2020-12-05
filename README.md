@@ -1,1 +1,1 @@
-# jooni
+# Just a discord bot

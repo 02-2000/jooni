@@ -1,1 +1,218 @@
+import discord
+from discord.ext import commands
+import time
+from datetime import datetime
+import json
+import os
+from check import is_admin
+from check import sr
+
+
+
+
+if os.path.isfile("knast.json"):
+    with open('knast.json', encoding='utf-8') as f:
+        knast = json.load(f)
+else:
+    knast = {}
+    knast['user'] = []
+    knast['role'] = []
+    with open('knast.json', 'w') as f:
+        json.dump(knast, f, indent=4)
+
+id_list = [] #Rollen nach removeknast
+
+bot = commands.Bot(command_prefix='ts!')
+
+botcolor = 0x00ff06
+
+bot.remove_command('help')
+
+class cmd(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+
+
+
+    @commands.command()
+    @commands.has_permissions(manage_roles=True)
+    async def add(self, ctx, member:discord.Member):
+        if ctx.author.bot == True:
+            return
+        sr(str(ctx.guild.id))
+        with open("Server/{}.json".format(str(ctx.guild.id)), encoding='utf-8') as f:
+            roles = json.load(f)
+        for t in roles['saved']:
+            id = ''.join(t['id'])
+            if str(member.id) in id:
+                t['roles'].clear()
+                for r in member.roles:
+                    if not r.name == "@everyone":
+                        t['roles'].append(str(r.id))
+                        print("roleupdate")
+                break
+        else:
+            roles['saved'].append({
+                'id': str(member.id),
+                'roles': [],
+            })
+            for t in roles['saved']:
+                if str(member.id) == t['id']:
+                    for r in member.roles:
+                        if not r.name == "@everyone":
+                            t['roles'].append(str(r.id))
+        with open("Server/{}.json".format(str(ctx.guild.id)), 'w+') as f:
+            json.dump(roles, f, indent=4)
+
+
+        for i in knast['user']:
+            if str(ctx.guild.id) in i['serverid'] :
+                if str(member.id) in i['id']:
+                    await ctx.send("**{}** ist bereits hinter Gittern!".format(member.name))
+                    return
+                elif not str(member.id) in i['id']:
+                    i['id'].append(str(member.id))
+                    await ctx.send("**{}** wurde in den Knast gesteckt!".format(member.name))
+                    try:
+                        print("lol")
+                        start = time.time()
+                        print("ok")
+                        for role in member.roles:
+                            if not role.name=="@everyone":
+                                try:
+                                    await member.remove_roles(role)
+                                    print("ok3")
+                                except Exception as e:
+                                    print(e)
+                        print("ok4")
+                        duration = time.time() - start
+                        du = round(duration * 1000)
+                        print("{} ms to remove roles".format(du))
+                        for i in knast['role']:
+                            if str(ctx.guild.id) in i['serverid'] :
+                                for a in i['roleid']:
+                                    role = ctx.guild.get_role(int(a))
+                                    try:
+                                        await member.add_roles(role)
+                                    except:
+                                        pass
+                        break
+                    except Exception as error:
+                        await ctx.channel.send(error)
+                    return
+        else:
+            if ctx.author.bot == False:
+                knast['user'].append({
+                'serverid': str(ctx.guild.id),
+                'id': [str(member.id), ]
+                })
+                await ctx.send("**{}** wurde in den Knast gesteckt!".format(member.name))
+                try:
+                    for role in member.roles:
+                        if not role.name == "@everyone":
+                            try:
+                                await member.remove_roles(role)
+                            except Exception as e:
+                                print(e)
+                            break
+                    for i in knast['role']:
+                        if str(ctx.guild.id) == i['serverid']:
+                            roleid = ''.join(i['roleid'])
+                            role = ctx.guild.get_role(int(roleid))
+                            try:
+                                await member.add_roles(role)
+                            except:
+                                pass
+
+                except Exception as error:
+                    await ctx.channel.send(error)
+        with open('knast.json', 'w') as f:
+            json.dump(knast, f, indent=4)
+
+    @commands.command()
+    @commands.has_permissions(manage_roles=True)
+    async def remove(self, ctx, member:discord.Member):
+        if ctx.author.bot == True:
+            return
+        for i in knast['user']:
+            if str(ctx.guild.id) in i['serverid'] :
+                if not str(member.id) in i['id']:
+                    if member == None:
+                        await ctx.send("**{}** ist nicht im Knast!".format(member))
+                    else:
+                        await ctx.send("**{}** ist nicht im Knast".format(member.name))
+                    break
+                elif str(member.id) in i['id']:
+                    i['id'].remove(str(member.id))
+                    if member == None:
+                        await ctx.send("**{}** wurde entlassen!".format(member))
+                    else:
+                        await ctx.send("**{}** wurde entlassen!".format(member.name))
+        with open('knast.json', 'w') as f:
+            json.dump(knast, f, indent=4)
+        for i in knast['role']:
+            if str(ctx.guild.id) in i['serverid'] :
+                for a in i['roleid']:
+                    role = ctx.guild.get_role(int(a))
+                    try:
+                        await member.remove_roles(role)
+                    except:
+                        pass
+        sr(str(ctx.guild.id))
+        with open("Server/{}.json".format(str(ctx.guild.id)), encoding='utf-8') as f:
+            roles = json.load(f)
+        for t in roles['saved']:
+            id = ''.join(t['id'])
+            if str(member.id) in id:
+                for r in t['roles']:
+                    try:
+                        role = member.guild.get_role(int(r))
+                        await member.add_roles(role)
+                    except:
+                        pass
+                del t['id']
+                del t['roles']
+                roles['saved'].remove({})
+                break
+        else:
+            for i in id_list:
+                role = ctx.guild.get_role(i)
+                await member.add_roles(role)
+        with open("Server/{}.json".format(str(ctx.guild.id)), 'w+') as f:
+            json.dump(roles, f, indent=4)
+
+    @commands.command()
+    @commands.has_permissions(manage_roles=True)
+    async def setrole(self, ctx, role:discord.Role):
+        if ctx.author.bot == True:
+            return
+        if not role == None:
+            print('1')
+            for i in knast['role']:
+                if str(ctx.guild.id) in i['serverid']:
+                    if str(role.id) in i['roleid']:
+                        await ctx.send("Role **{}** is already selected!".format(role))
+                        break
+                    elif not str(role.id) in i['roleid']:
+                        i['roleid'].clear()
+                        i['roleid'].append(str(role.id))
+                        await ctx.send("Role selected".format(role))
+                        break
+            else:
+                if ctx.author.bot == False:
+                    knast['role'].append({
+                    'serverid': str(ctx.guild.id),
+                    'roleid': [str(role.id), ]
+                    })
+                    await ctx.send("Role added to db".format(role))
+            with open('knast.json', 'w') as f:
+                 json.dump(knast, f, indent=4)
+        if not role:
+            await ctx.send("Role not found")
+
+
+
+def setup(bot):
+    bot.add_cog(cmd(bot))
 
